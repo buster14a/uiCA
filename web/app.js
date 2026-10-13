@@ -1,7 +1,7 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 const state = { config: null, report: null, mode: 'assembly', view: 'resources', target: 'ZEN4', busy: false,
-  text: { assembly: '', hex: '' }, file: null, fileName: '', selectedInstruction: null };
+  text: { assembly: '', hex: '' }, file: null, fileName: '', selectedInstruction: null, readingFile: false, fileReadId: 0 };
 const colors = { ZEN4: '#72e5c0', ZEN5: '#baabff' };
 const plural = (number, word) => `${number} ${word}${number === 1 ? '' : 's'}`;
 const pretty = (value) => value == null ? 'Unavailable' : Number(value).toFixed(2);
@@ -72,16 +72,16 @@ function loadExample(id, run = true) {
 }
 function setBusy(busy) {
   state.busy = busy;
-  $('code').readOnly = busy; $('file').disabled = busy; $('file-format').disabled = busy;
-  document.querySelectorAll('.input-tab').forEach(button => { button.disabled = busy; });
-  $('analyze').disabled = busy || !state.config;
+  $('code').readOnly = busy; $('file').disabled = busy || state.readingFile; $('file-format').disabled = busy || state.readingFile;
+  document.querySelectorAll('.input-tab').forEach(button => { button.disabled = busy || state.readingFile; });
+  $('analyze').disabled = busy || !state.config || state.readingFile;
   $('analyze-label').textContent = busy ? 'Analyzing both targets…' : 'Analyze block';
   document.querySelector('.results-column').classList.toggle('loading', busy);
   $('analyze').setAttribute('aria-busy', String(busy));
   document.querySelectorAll('[data-example],.example-choice').forEach(button => { button.disabled = busy; });
 }
 async function analyzeBlock() {
-  if (state.busy || !state.config) return;
+  if (state.busy || state.readingFile || !state.config) return;
   $('error').classList.add('hidden');
   let mode = state.mode, input = $('code').value;
   if (mode === 'file') {
@@ -302,16 +302,25 @@ function exportReport() {
   setTimeout(() => URL.revokeObjectURL(url), 3000); toast('Analysis report exported');
 }
 async function selectFile(file) {
-  if (!file) return;
+  if (!file || state.busy) return;
   if (file.size > 16 * 1024 * 1024) { showError('Choose a file of at most 16 MiB.'); return; }
+  const readId = ++state.fileReadId;
+  state.readingFile = true; state.file = null; setBusy(false);
+  $('analyze-label').textContent = 'Reading file…';
   const reader = new FileReader();
-  reader.onload = () => { state.file = String(reader.result).split(',')[1]; state.fileName = file.name;
+  reader.onload = () => {
+    if (readId !== state.fileReadId) return;
+    state.readingFile = false; setBusy(false);
+    state.file = String(reader.result).split(',')[1]; state.fileName = file.name;
     $('file-name').textContent = `${file.name} · ${file.size.toLocaleString()} bytes`;
     $('file-format').value = /\.(o|obj)$/i.test(file.name) ? 'object' : 'raw';
     $('context-label').textContent = 'YOUR INPUT'; $('example-name').textContent = 'Your uploaded block'; $('example-description').textContent = 'The file is decoded locally. Its bytes are never executed.';
     $('example-tag').textContent = $('file-format').value === 'object' ? 'ELF64' : 'RAW';
     $('input-count').textContent = `${file.size.toLocaleString()} file bytes`; markEdited(); };
-  reader.onerror = () => showError('The file could not be read.'); reader.readAsDataURL(file);
+  reader.onerror = () => {
+    if (readId !== state.fileReadId) return;
+    state.readingFile = false; setBusy(false); showError('The file could not be read.');
+  }; reader.readAsDataURL(file);
 }
 function configureTabs(selector) {
   const buttons = [...document.querySelectorAll(selector)];
