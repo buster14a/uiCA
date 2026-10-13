@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
 
+# Keep AMD selection before Intel-only decoder/data/visualization imports.
+# AMD intentionally has its own opt-in CLI and never enters an Intel model.
+import sys
+if __name__ == '__main__':
+   import argparse as _dispatch_argparse
+   _dispatch_parser = _dispatch_argparse.ArgumentParser(add_help=False)
+   _dispatch_parser.add_argument('-arch')
+   _dispatch_args, _ = _dispatch_parser.parse_known_args()
+   if _dispatch_args.arch in ('ZEN4', 'ZEN5', 'znver4', 'znver5'):
+      from zen_cli import main as _amd_main
+      sys.exit(_amd_main())
+
 import argparse
 import importlib
 import os
@@ -2017,7 +2029,7 @@ def main():
    parser.add_argument('filename', help='File to be disassembled')
    parser.add_argument('-iacaMarkers', help='Use IACA markers', action='store_true')
    parser.add_argument('-raw', help='raw file', action='store_true')
-   parser.add_argument('-arch', help='Microarchitecture; Possible values: all, ' + ', '.join(allMicroArchs), default='all')
+   parser.add_argument('-arch', help='Microarchitecture; Possible values: all (Intel), ' + ', '.join(allMicroArchs) + '; experimental AMD bounds: ZEN4, ZEN5, znver4, znver5 (see AMD.md)', default='all')
    parser.add_argument('-trace', help='HTML trace', nargs='?', const='trace.html')
    parser.add_argument('-graph', help='HTML graph', nargs='?', const='graph.html')
    parser.add_argument('-TPonly', help='Output only the TP prediction', nargs='?', const='graph.html')
