@@ -1,0 +1,54 @@
+/* Small responsive additions; the downloaded upstream layout/style is retained. */
+body { margin: 8px 16px; }
+textarea { max-width: 100%; box-sizing: border-box; }
+label { display: inline-block; }
+label:has(input:disabled) { color: #888; }
+#localNotice, #optionNote { max-width: 1000px; line-height: 1.45; }
+#localNotice { background: #eef3fb; border-left: 4px solid #4472c4; padding: 10px 12px; }
+#optionNote { color: #555; font-size: 14px; }
+.upload { margin-left: 16px; }
+#outputDiv { overflow-wrap: anywhere; }
+#TPTable { margin-bottom: 16px; }
+#TPTable th:first-child { min-width: 128px; }
+.modelWarning { max-width: 1100px; color: #775513; }
+.toolOutput { display: block; background: #f2f2f2; max-width: 1100px; }
+.toolOutput table { border-collapse: collapse; background: white; width: 100%; }
+.toolOutput th, .toolOutput td { padding: 6px 10px; border: 1px solid #ddd; text-align: left; }
+.toolOutput summary { cursor: pointer; padding: 6px 0; }
+.dependencyGraph { max-width: 760px; width: 100%; display: block; background: white; }
+.download { display: inline-block; margin: 12px 0; }
+pre { overflow-x: auto; max-height: 380px; background: #f6f6f6; padding: 12px; font-size: 12px; }
+input[type=button]:disabled { opacity: .6; }
+.pipeline { margin: 12px 0; padding: 14px; background: white; border: 1px solid #ccd7e8; border-radius: 5px; }
+.pipeline h4 { margin: 0 0 10px; font-size: 18px; }
+.stageFlow { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; font-size: 13px; }
+.stageFlow span { padding: 8px 10px; border-radius: 4px; }
+.unknownStage { background: #eceef1; color: #656a74; border: 1px dashed #abb1bb; }
+.traceControls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.traceControls input { width: 64px; }
+.traceControls select, .traceControls input, .traceControls button { padding: 5px; }
+.traceCaption { font-size: 12px; color: #565f6d; }
+.activityGraph { width: 100%; display: block; max-width: 1100px; }
+.traceScroll { max-width: 100%; overflow: auto; max-height: 540px; border: 1px solid #d8dde5; }
+.toolOutput .traceMatrix { font-size: 11px; width: max-content; font-family: monospace; }
+.toolOutput .traceMatrix td, .toolOutput .traceMatrix th { padding: 5px; text-align: center; min-width: 20px; white-space: nowrap; }
+.traceMatrix thead { position: sticky; top: 0; background: #eef3fb; z-index: 2; }
+.toolOutput .traceMatrix .traceInstruction { text-align: left; min-width: 220px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; }
+.stage-predecoded { background: #9be5f1; }
+.stage-queued { background: #9cc6f5; }
+.stage-issued { background: #e9a2cf; }
+.stage-ready { background: #f3ae7c; }
+.stage-dispatch { background: #f5ce70; }
+.stage-executed { background: #b7de80; }
+.stage-retired { background: #64bc9d; }
+.stage-waiting { background: #eee; color: #777; }
+@media (max-width: 700px) {
+  body { margin: 8px; }
+  h1 { font-size: 24px; }
+  form > table, form > table > tbody, form > table > tbody > tr, form > table > tbody > tr > td { display: block; }
+  form td { padding: 4px 0 !important; }
+  .upload { margin: 10px 0; }
+  #TPTable { font-size: 12px; width: 100%; }
+  #TPTable td, #TPTable th { padding: 5px; overflow-wrap: anywhere; }
+  #TPTable th:first-child { min-width: 0; }
+}

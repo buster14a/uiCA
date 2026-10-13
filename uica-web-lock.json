@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "frontend": {
+    "path": "index.html",
+    "url": "https://uica.uops.info/",
+    "sha256": "6aadd913440d76fbdbd22210f111a059b575d7242e96626ce057dfe26ffafd93",
+    "license": "unverified; excluded from git; explicit local reference download"
+  },
+  "assets": [
+    {
+      "path": "vendor/jquery.min.js",
+      "url": "https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js",
+      "sha256": "ff1523fb7389539c84c65aba19260648793bb4f5e29329d2ee8804bc37a3fe6e",
+      "bytes": 89501,
+      "license": "MIT"
+    },
+    {
+      "path": "vendor/colorbox.js",
+      "url": "https://cdnjs.cloudflare.com/ajax/libs/jquery.colorbox/1.6.4/jquery.colorbox-min.js",
+      "sha256": "41bc4d4fe88139d6ee89abfcb2abac71e1430d85dbffc0be7c8f6bd36f4ced7e",
+      "bytes": 11960,
+      "license": "MIT"
+    },
+    {
+      "path": "vendor/colorbox.css",
+      "url": "https://www.jacklmoore.com/colorbox/example2/colorbox.css",
+      "sha256": "01c43044088c31a7d3d0df63a4d29f09482e423a84dc99ba2856a7211fc38a5a",
+      "bytes": 3127,
+      "license": "MIT"
+    },
+    {
+      "path": "vendor/font-awesome.css",
+      "url": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css",
+      "sha256": "799aeb25cc0373fdee0e1b1db7ad6c2f6a0e058dfadaa3379689f583213190bd",
+      "bytes": 31000,
+      "license": "MIT"
+    },
+    {
+      "path": "fonts/fontawesome-webfont.woff2",
+      "url": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/fonts/fontawesome-webfont.woff2",
+      "sha256": "2adefcbc041e7d18fcf2d417879dc5a09997aa64d675b7a3c4b6ce33da13f3fe",
+      "bytes": 77160,
+      "license": "SIL-OFL-1.1"
+    },
+    {
+      "path": "vendor/images/loading.gif",
+      "url": "https://www.jacklmoore.com/colorbox/example2/images/loading.gif",
+      "sha256": "646ef3b2d197aebb633ba93a32485e9b289956697f8e0658d4b642c1aae5997d",
+      "bytes": 6244,
+      "license": "MIT"
+    },
+    {
+      "path": "vendor/images/controls.png",
+      "url": "https://www.jacklmoore.com/colorbox/example2/images/controls.png",
+      "sha256": "cd32eebe32e09a98546b167fe60b0b1f23f3ef4036c0a1fdd78bafa9d1b6c65d",
+      "bytes": 503,
+      "license": "MIT"
+    }
+  ],
+  "backend": "Original /cgi-bin/tp.py is not included in the published uiCA repository. The fork provides its own local backend."
+}

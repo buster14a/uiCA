@@ -41,6 +41,82 @@ passes the current local corpus. Analysis never downloads data.
 
 ## Analyze machine code
 
+### Graphical interface
+
+After the analyzer setup, run `.venv/bin/python setup_uica_web.py --download`
+once, then `.venv/bin/python zen_gui.py --open`. The actual downloaded
+uiCA.uops.info form opens at `http://127.0.0.1:8765`, with Zen 4/5 choices added.
+A second launch reopens an already-running instance. Use `--port 8766` for
+another loopback port; stop with Ctrl+C. Restart after updating the fork so
+loaded code and provenance match the source.
+
+Paste GNU as Intel/AT&T, NASM or hex input, or upload raw/relocation-free ELF64
+machine code. GNU `as` / optional NASM assemble instructions, labels and
+comments only; file/macro/repetition directives are rejected. Assembler and
+decoder subprocesses have deadlines. Raw code is limited to 8 KiB / 256
+instructions. No target code is executed.
+
+Select one to four targets. Intel uses the original pipeline simulation,
+including its automatic loop/unroll policy and alignment offset, in a bounded
+child process. Unknown Intel forms, decoder diagnostics and invalid-for-chip
+encodings cannot produce a successful prediction in the adapter. The original
+headless CLI is unchanged. AMD uses the explicit conditional resource and
+register-recurrence model; alignment is recorded but unmodeled. The shared
+results table keeps pipeline predictions separate from AMD bounds.
+
+AMD **Dependencies** shows instruction-grouped register/address arrows and a
+complete operand-edge table; JSON retains the full graph, exact bytes, coverage,
+assumptions, code/data/decoder hashes and served-asset hashes. Examples and
+instruction details are available. Pipeline **Trace Table** and **Graph** are available for both vendors. Intel
+events come directly from upstream `generateJSONOutput`, including predecode,
+IDQ, issue, operand readiness, execution-port dispatch, execution and retirement.
+The first eight iterations are retained, with the upstream loop/unroll policy.
+Per-row cycle letters preserve simultaneous events rather than overwriting them.
+
+AMD traces use `zen_trace.py`: an explicitly experimental, ideal-front-end
+execution scheduler driven by exact AMD operand latencies and resource mappings.
+It expands eight repeated iterations, respects byte/register/flag and loop-carried
+dependencies, matches eligible resource slots without double booking, and uses
+oldest-ready priority. All operations are available at cycle zero, live-ins are
+ready at zero, and all resource slots of an operation start together. Completion
+is the maximum exact measured input-to-output latency for each output.
+There is no fetch/decode/op-cache/rename/finite-queue/ROB/retirement timing.
+Those stages are explicitly marked unmodeled in the UI and JSON. This is a
+conditional feasible execution schedule, **not a full AMD pipeline prediction,
+a measured trace, or a speedup comparison against Intel**. Full AMD predictions
+remain null and qualification remains pending.
+
+AMD trace occupancy is restricted to simple ADD/SUB/AND/OR/XOR/CMP/TEST and
+VPADDD/VADDPS/VPSHUFB register forms with modeled resources and exact integer
+operand latencies. Existing narrow wide-vector assumptions remain conditional.
+Memory, unqualified masks/widths/classes, unknown/censored/range latencies and
+operations needing an unqualified multi-cycle resource decomposition refuse a
+trace with an explicit reason. Trace input is limited to 32 instructions, eight
+iterations and 2048 AMD cycles. Disable Trace Table/Graph for larger ordinary
+analyses. Cycle-window and iteration selectors control the diagram and matrix;
+complete recorded data remains in JSON. External IACA/LLVM/OSACA/CQA tools remain
+disabled, with visible explanations. A changed or
+failed input clears the previous result instead of relabeling it as current.
+
+Frontend provenance: `uica-web-lock.json` pins the retrieved page and dependency
+assets. The site's separate frontend license is **unverified**; neither its
+HTML/JS/CSS nor its unpublished `/cgi-bin/tp.py` backend is vendored into this
+public fork. Explicit setup downloads into ignored `.uica-web/`, verifies hashes,
+removes telemetry and the third-party URL-shortening function/credential before
+writing, then patches the original DOM/style with this fork's own adapter.
+The sanitized browser-side reference is retained as `.uica-web/reference.html`.
+Client dependencies retain their upstream notices: jQuery/Colorbox CSS/JS MIT;
+Font Awesome CSS MIT and fonts SIL-OFL-1.1. This does not establish a license for
+the site's own frontend. The simulator and new adapter/backend remain AGPL-3.0.
+
+The local service needs no browser framework, npm package or plotting library.
+It binds only to loopback, restricts Host/Origin and analysis requests to the
+current session token, snapshots an explicit asset allowlist, and accepts one
+bounded analysis at a time. It sends no code or reports to a remote service.
+A web cache is never silently downloaded or refreshed at launch/analysis time.
+
+### Command line
+
 ```sh
 printf '\110\001\330\110\001\303' > adds.bin
 .venv/bin/python uiCA.py adds.bin -raw -arch ZEN4 -json zen4.json -depGraph deps.dot
