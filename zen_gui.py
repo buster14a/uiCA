@@ -23,6 +23,7 @@ from zen_cli import (ROOT, MAX_CODE_BYTES, MAX_INSTRUCTIONS, analyze, decode,
                      extract_text, load_data, provenance, sha256)
 from zen_model import MODEL_VERSION
 from setup_uica_web import frontend_assets
+from zen_trace import amd_trace, MAX_TRACE_INSTRUCTIONS, TRACE_VERSION
 
 WEB = ROOT / 'web'
 INTEL_TARGETS = ('SNB', 'IVB', 'HSW', 'BDW', 'SKL', 'SKX', 'KBL', 'CFL', 'CLX', 'ICL', 'TGL', 'RKL')
@@ -157,6 +158,8 @@ class Analyzer:
         self.identity['gui_source_sha256'] = sha256((ROOT / 'zen_gui.py').read_bytes())
         self.identity['gui_assets_sha256'] = {p.name: sha256(p.read_bytes()) for p in WEB.iterdir() if p.is_file()}
         self.identity['intel_gui_sha256'] = sha256((ROOT / 'zen_intel_gui.py').read_bytes())
+        self.identity['trace_version'] = TRACE_VERSION
+        self.identity['trace_source_sha256'] = sha256((ROOT / 'zen_trace.py').read_bytes())
         self.identity['intel_source_sha256'] = {name: sha256((ROOT / name).read_bytes()) for name in
                                                 ('uiCA.py', 'instructions.py', 'microArchConfigs.py', 'facile.py', 'utils.py', 'convertXML.py')}
         self.identity['intel_data_sha256'] = {p.name: sha256(p.read_bytes()) for p in sorted((ROOT / 'instrData').glob('*.py'))}
@@ -171,22 +174,30 @@ class Analyzer:
         alignment = request.get('alignment', 0)
         if type(alignment) is not int or not 0 <= alignment < 64:
             raise ValueError('Alignment offset must be in 0..63.')
+        trace = request.get('trace', False)
+        if type(trace) is not bool:
+            raise ValueError('Trace selection must be true or false.')
         code = input_bytes(request)
         try:
             decoded = decode(code)
         except ValueError as error:
             raise ValueError('The machine code is truncated or could not be decoded completely. Check the bytes and try again.') from error
+        if trace and len(decoded) > MAX_TRACE_INSTRUCTIONS:
+            raise ValueError('Pipeline views accept at most %d instructions. Disable Trace Table/Graph to analyze a larger block.' % MAX_TRACE_INSTRUCTIONS)
         results = []
         for target in targets:
             if target.startswith('ZEN'):
-                results.append(analyze(decoded, target, self.data))
+                result = analyze(decoded, target, self.data)
+                if trace:
+                    result['trace'] = amd_trace(decoded, target, self.data)
+                results.append(result)
             else:
                 try:
                     timeout = min(15, 45 - (time.monotonic() - started))
                     if timeout <= 0:
                         raise ValueError('Comparison exceeded its 45-second deadline.')
                     child = subprocess.run([sys.executable, str(ROOT / 'zen_intel_gui.py')],
-                                           input=json.dumps({'target': target, 'hex': code.hex(), 'alignment': alignment}),
+                                           input=json.dumps({'target': target, 'hex': code.hex(), 'alignment': alignment, 'trace': trace}),
                                            text=True, capture_output=True, timeout=timeout, cwd=ROOT)
                     # XED can print INVALID_FOR_CHIP yet exit 0. Reject any
                     # diagnostic or extra output rather than trusting the TP.

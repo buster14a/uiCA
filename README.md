@@ -33,8 +33,9 @@ upstream form and results table are retained, with AMD comparisons, examples,
 raw/ELF uploads, register dependency views, coverage gaps and JSON export.
 Intel choices use the original uiCA pipeline model. AMD remains experimental
 conditional resource/recurrence analysis, with no full pipeline prediction or
-hardware qualification. External analyzers and pipeline traces are disabled in
-this local adapter. See [GUI details](AMD.md#graphical-interface).
+hardware qualification. Trace Table and Graph show original Intel pipeline events and experimental
+AMD execution schedules. AMD fetch/decode/rename/finite queues/retirement remain
+unmodeled. External analyzers are disabled in this local adapter. See [GUI details](AMD.md#graphical-interface).
 
 The separate frontend's license is unverified, and its CGI backend is absent
 from the published simulator repository. Downloaded source/assets stay in the

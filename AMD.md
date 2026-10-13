@@ -67,8 +67,35 @@ results table keeps pipeline predictions separate from AMD bounds.
 AMD **Dependencies** shows instruction-grouped register/address arrows and a
 complete operand-edge table; JSON retains the full graph, exact bytes, coverage,
 assumptions, code/data/decoder hashes and served-asset hashes. Examples and
-instruction details are available. Pipeline Trace Table/Graph and external
-IACA/LLVM/OSACA/CQA tools are disabled, with visible explanations. A changed or
+instruction details are available. Pipeline **Trace Table** and **Graph** are available for both vendors. Intel
+events come directly from upstream `generateJSONOutput`, including predecode,
+IDQ, issue, operand readiness, execution-port dispatch, execution and retirement.
+The first eight iterations are retained, with the upstream loop/unroll policy.
+Per-row cycle letters preserve simultaneous events rather than overwriting them.
+
+AMD traces use `zen_trace.py`: an explicitly experimental, ideal-front-end
+execution scheduler driven by exact AMD operand latencies and resource mappings.
+It expands eight repeated iterations, respects byte/register/flag and loop-carried
+dependencies, matches eligible resource slots without double booking, and uses
+oldest-ready priority. All operations are available at cycle zero, live-ins are
+ready at zero, and all resource slots of an operation start together. Completion
+is the maximum exact measured input-to-output latency for each output.
+There is no fetch/decode/op-cache/rename/finite-queue/ROB/retirement timing.
+Those stages are explicitly marked unmodeled in the UI and JSON. This is a
+conditional feasible execution schedule, **not a full AMD pipeline prediction,
+a measured trace, or a speedup comparison against Intel**. Full AMD predictions
+remain null and qualification remains pending.
+
+AMD trace occupancy is restricted to simple ADD/SUB/AND/OR/XOR/CMP/TEST and
+VPADDD/VADDPS/VPSHUFB register forms with modeled resources and exact integer
+operand latencies. Existing narrow wide-vector assumptions remain conditional.
+Memory, unqualified masks/widths/classes, unknown/censored/range latencies and
+operations needing an unqualified multi-cycle resource decomposition refuse a
+trace with an explicit reason. Trace input is limited to 32 instructions, eight
+iterations and 2048 AMD cycles. Disable Trace Table/Graph for larger ordinary
+analyses. Cycle-window and iteration selectors control the diagram and matrix;
+complete recorded data remains in JSON. External IACA/LLVM/OSACA/CQA tools remain
+disabled, with visible explanations. A changed or
 failed input clears the previous result instead of relabeling it as current.
 
 Frontend provenance: `uica-web-lock.json` pins the retrieved page and dependency

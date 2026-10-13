@@ -102,15 +102,17 @@ def adapt(source):
     source = source.replace('https://www.jacklmoore.com/colorbox/example2/colorbox.css', '/vendor/colorbox.css')
     source = source.replace('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css', '/vendor/font-awesome.css')
     source = source.replace('<title>uiCA</title>', '<title>uiCA — local Intel &amp; AMD analyzer</title>')
-    source = source.replace('</head>', '<meta name="viewport" content="width=device-width, initial-scale=1">\n<link rel="stylesheet" href="/local.css">\n<script src="/adapter.js" defer></script>\n</head>')
+    source = source.replace('</head>', '<meta name="viewport" content="width=device-width, initial-scale=1">\n<link rel="stylesheet" href="/local.css">\n<script src="/adapter.js" type="module"></script>\n</head>')
     source = source.replace('<hr>', '<hr><p id="localNotice"><strong>Local fork · Experimental AMD bounds</strong> — Intel uses the original uiCA pipeline model. Zen 4/5 show conditional bounds, not full throughput predictions; hardware qualification is pending.</p>', 1)
-    source = source.replace('id="cb_SKL" value="SKL" checked', 'id="cb_SKL" value="SKL"')
+    source = source.replace('loop:\nadd rax, [rsi]\nadc rax, [rsi+rbx]\nshld rcx, rcx, 1\nshld rcx, rdx, 2\ndec r15\njnz loop', 'add rax, rbx\nadd rbx, rax')
     source = source.replace('</select></td>', '<br><label><input type="checkbox" name="uArchs" value="ZEN4" checked>AMD Zen 4</label> <label><input type="checkbox" name="uArchs" value="ZEN5" checked>AMD Zen 5</label></td>', 1)
     source = source.replace('<textarea name="code"', '<textarea aria-label="Assembly or hex code" name="code"')
     source = source.replace('value="Run!"', 'id="runButton" value="Run!" disabled')
     source = source.replace('value="Get URL!"', 'id="urlButton" value="Get URL!"')
     source = source.replace('<div id="outputDiv"></div>', '<div id="outputDiv" role="status" aria-live="polite"></div>')
-    source = source.replace('</form>', '<p id="optionNote">Alignment is modeled only for Intel. Local support: uiCA; dependency views for AMD. Pipeline traces and external tools are unavailable in this adapter.</p>\n<label>Example: <select id="example"><option value="">Choose a block…</option></select></label>\n<label class="upload">or upload <select id="fileMode" aria-label="File format"><option value="raw">Raw machine code</option><option value="object">ELF64 object</option></select> <input type="file" id="file" aria-label="Machine code file"></label>\n</form>')
+    source = source.replace('</form>', '<p id="optionNote">Intel: original pipeline events. AMD: experimental execution schedule with ideal front end; fetch/decode/rename/queues/retirement remain unmodeled. Alignment applies only to Intel. Trace views support up to 32 instructions; external tools are unavailable.</p>\n<label>Example: <select id="example"><option value="">Choose a block…</option></select></label>\n<label class="upload">or upload <select id="fileMode" aria-label="File format"><option value="raw">Raw machine code</option><option value="object">ELF64 object</option></select> <input type="file" id="file" aria-label="Machine code file"></label>\n</form>')
+    source = source.replace('name="uiCAHtmlOptions" value="traceTable"', 'name="uiCAHtmlOptions" value="traceTable" checked')
+    source = source.replace('name="uiCAHtmlOptions" value="graph"', 'name="uiCAHtmlOptions" value="graph" checked')
     return source
 
 
@@ -160,7 +162,7 @@ def frontend_assets():
             if digest(body) != receipt['files'][name]:
                 raise ValueError('Cached frontend asset changed: ' + name)
             files[name] = body
-        for name in ('adapter.js', 'local.css', 'favicon.svg'):
+        for name in ('adapter.js', 'pipeline.js', 'local.css', 'favicon.svg'):
             files[name] = (ROOT / 'web' / name).read_bytes()
         files['receipt.json'] = json.dumps(receipt, indent=2).encode()
         return files

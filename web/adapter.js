@@ -1,5 +1,6 @@
 /* Original AGPL fork adapter for the explicitly downloaded uiCA web interface. */
 'use strict';
+import { pipelineView } from './pipeline.js';
 const form = document.getElementById('form');
 const output = document.getElementById('outputDiv');
 const runButton = document.getElementById('runButton');
@@ -22,9 +23,9 @@ function options() {
     if (node.disabled) { node.checked = false; node.parentElement.title = 'Not installed in this local adapter'; }
   }
   for (const node of form.querySelectorAll('[name="uiCAHtmlOptions"]')) {
-    node.disabled = node.value !== 'dependencies' || !amd;
+    node.disabled = node.value === 'dependencies' && !amd;
     if (node.disabled) node.checked = false;
-    node.parentElement.title = node.value === 'dependencies' ? 'AMD register/address dependency view' : 'Pipeline trace output is not implemented in this local adapter';
+    node.parentElement.title = node.value === 'dependencies' ? 'AMD register/address dependency view' : 'Intel pipeline events; AMD experimental ideal-front-end execution schedule';
   }
 }
 function clearReport(message) {
@@ -97,7 +98,7 @@ function dependencies(result, parent) {
     return [`${a.instruction} / ${a.operand}`, `${b.instruction} / ${b.operand}`, String(e.iteration_distance), `${e.latency.kind}: [${e.latency.lower ?? '?'}, ${e.latency.upper ?? '?'}]`];
   }), details);
 }
-function render(report, showDependencies) {
+function render(report, views) {
   clearReport(`Analyzed ${report.input.instructions} instructions / ${report.input.bytes} bytes in ${report.analysis_seconds}s. Results describe these exact bytes.`);
   table(['Microarchitecture', 'Analysis', 'Pipeline cycles / iteration', 'Conditional resource bound', 'Register recurrence bound', 'Coverage'], report.results.map(r => [
     r.target.replace('ZEN', 'AMD Zen '), r.analysis_mode === 'upstream-intel-pipeline' ? 'Intel pipeline simulation' : r.analysis_mode === 'experimental-conditional-bounds' ? 'Experimental AMD bounds' : r.status,
@@ -110,6 +111,7 @@ function render(report, showDependencies) {
     const block = element('div', null, output, 'toolOutput');
     element('h3', result.target.replace('ZEN', 'AMD Zen '), block);
     if (result.error) { element('p', result.error, block); continue; }
+    if (views.traceTable || views.graph) pipelineView(result, block, views);
     if (result.coverage) {
       const pressure = result.bottleneck_resource_subsets;
       element('p', pressure.length ? 'Limiting eligible resource groups: ' + pressure.map(p => p.join(' / ')).join('; ') : 'Resource ceiling unavailable or no limiting resource group identified.', block);
@@ -118,7 +120,7 @@ function render(report, showDependencies) {
         const list = element('ul', null, block);
         result.unsupported.forEach(g => element('li', `${g.instruction === null ? 'Block' : 'Instruction ' + g.instruction} · ${g.component}: ${g.reason}`, list));
       }
-      if (showDependencies) dependencies(result, block);
+      if (views.dependencies) dependencies(result, block);
     }
     const details = element('details', null, block);
     element('summary', 'Instruction details', details);
@@ -137,8 +139,9 @@ async function run() {
   const data = new FormData(form);
   const syntax = data.get('syntax');
   const request = uploaded || {mode: syntax === 'hex' ? 'hex' : 'assembly', input: data.get('code'), syntax};
-  const payload = {...request, targets: selections('uArchs'), alignment: Number(data.get('alignment'))};
-  const deps = selections('uiCAHtmlOptions').includes('dependencies');
+  const selectedViews = selections('uiCAHtmlOptions');
+  const views = Object.fromEntries(['traceTable', 'graph', 'dependencies'].map(name => [name, selectedViews.includes(name)]));
+  const payload = {...request, targets: selections('uArchs'), alignment: Number(data.get('alignment')), trace: views.traceTable || views.graph};
   if (!selections('tools').includes('uiCA')) { clearReport('Select uiCA to analyze the block.'); return; }
   runButton.disabled = true;
   clearReport('Processing…');
@@ -147,7 +150,7 @@ async function run() {
     const report = await response.json();
     if (current !== generation) return;
     if (!response.ok) throw new Error(report.error || 'Analysis failed.');
-    render(report, deps);
+    render(report, views);
   } catch (error) { if (current === generation) clearReport(error.message); }
   finally { runButton.disabled = reading || !config; }
 }
