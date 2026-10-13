@@ -158,7 +158,6 @@ function restoreURL() {
   if (!location.search) return;
   const params = new URLSearchParams(location.search);
   for (const name of ['uArchs', 'tools', 'uiCAHtmlOptions']) {
-    if (!params.has(name)) continue;
     for (const node of form.querySelectorAll(`[name="${name}"]`)) node.checked = params.getAll(name).includes(node.value);
   }
   const syntax = params.get('syntax');
