@@ -164,6 +164,8 @@ class GuiServer(ThreadingHTTPServer):
         self.analyzer = analyzer
         self.token = secrets.token_urlsafe(32)
         self.analysis_slot = threading.BoundedSemaphore(1)
+        self.assets = {name: (WEB / name).read_bytes()
+                       for name in ('index.html', 'app.js', 'style.css', 'favicon.svg')}
         super().__init__(address, Handler)
 
 
@@ -216,7 +218,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_response(404, {'error': 'Not found.'})
             else:
                 name, content_type = files[path]
-                self.send(200, (WEB / name).read_bytes(), content_type)
+                self.send(200, self.server.assets[name], content_type)
 
     def do_POST(self):
         port = self.server.server_address[1]

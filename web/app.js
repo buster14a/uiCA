@@ -78,7 +78,7 @@ function setBusy(busy) {
   $('analyze-label').textContent = busy ? 'Analyzing both targets…' : 'Analyze block';
   document.querySelector('.results-column').classList.toggle('loading', busy);
   $('analyze').setAttribute('aria-busy', String(busy));
-  document.querySelectorAll('[data-example],.example-choice').forEach(button => { button.disabled = busy; });
+  document.querySelectorAll('[data-example],.example-choice').forEach(button => { button.disabled = busy || state.readingFile; });
 }
 async function analyzeBlock() {
   if (state.busy || state.readingFile || !state.config) return;
@@ -305,7 +305,8 @@ async function selectFile(file) {
   if (!file || state.busy) return;
   if (file.size > 16 * 1024 * 1024) { showError('Choose a file of at most 16 MiB.'); return; }
   const readId = ++state.fileReadId;
-  state.readingFile = true; state.file = null; setBusy(false);
+  state.readingFile = true; state.file = null; setBusy(false); markEdited();
+  $('file-name').textContent = `Reading ${file.name}…`;
   $('analyze-label').textContent = 'Reading file…';
   const reader = new FileReader();
   reader.onload = () => {
