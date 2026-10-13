@@ -35,13 +35,15 @@ class AdapterTests(unittest.TestCase):
         self.assertIn('<textarea', page)
 
     def test_mixed_case_scripts_and_all_event_handlers_are_removed(self):
-        source = '<HEAD><SCRIPT SRC="https://example.test/code.js"></SCRIPT><ScRiPt>bad()</sCrIpT></HEAD><BODY ONLOAD="bad()"><textarea onfocus=bad>keep &lt; text</textarea></BODY>'
+        source = '<HEAD><SCRIPT SRC="https://example.test/code.js"></SCRIPT><ScRiPt>bad()</sCrIpT></HEAD><BODY ONLOAD="bad()"><textarea onfocus=bad>keep &lt; text; AT&T</textarea></BODY>'
         page = adapt(source)
         self.assertNotIn('bad()', page)
         self.assertNotIn('example.test', page)
         self.assertNotIn('onload', page)
         self.assertNotIn('onfocus', page)
         self.assertIn('keep &lt; text', page)
+        self.assertIn('AT&amp;T', page)
+        self.assertNotIn('AT&amp;T;', page)
 
     def test_source_pin_and_local_cache_exclusion_are_recorded(self):
         lock = json.loads((ROOT / 'uica-web-lock.json').read_text())

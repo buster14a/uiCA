@@ -23,12 +23,15 @@ LOCK = ROOT / 'uica-web-lock.json'
 class ClientHTMLParser(HTMLParser):
     """Preserve the downloaded document while removing selected script nodes."""
     def __init__(self, all_scripts):
-        super().__init__(convert_charrefs=False)
+        super().__init__(convert_charrefs=True)
         self.all_scripts = all_scripts
         self.dropping_script = False
+        self.raw_text = False
         self.parts = []
 
     def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style'):
+            self.raw_text = True
         if tag == 'script':
             src = urlsplit(dict(attrs).get('src') or '')
             self.dropping_script = self.all_scripts or (src.hostname in ('uops.info', 'www.uops.info') and src.path == '/m.js')
@@ -44,30 +47,28 @@ class ClientHTMLParser(HTMLParser):
         self.handle_starttag(tag, attrs)
         if not self.dropping_script and not self.parts[-1].endswith('/>'):
             self.parts[-1] = self.parts[-1][:-1] + '/>'
-        if tag == 'script':
+        if tag in ('script', 'style'):
             self.dropping_script = False
+            self.raw_text = False
 
     def handle_endtag(self, tag):
         if not self.dropping_script:
             self.parts.append('</' + tag + '>')
-        if tag == 'script':
+        if tag in ('script', 'style'):
             self.dropping_script = False
+            self.raw_text = False
 
     def handle_data(self, data):
         if not self.dropping_script:
-            self.parts.append(data)
-
-    def handle_entityref(self, name):
-        self.handle_data('&' + name + ';')
-
-    def handle_charref(self, name):
-        self.handle_data('&#' + name + ';')
+            self.parts.append(data if self.raw_text else html.escape(data, quote=False))
 
     def handle_comment(self, data):
-        self.handle_data('<!--' + data + '-->')
+        if not self.dropping_script:
+            self.parts.append('<!--' + data + '-->')
 
     def handle_decl(self, decl):
-        self.handle_data('<!' + decl + '>')
+        if not self.dropping_script:
+            self.parts.append('<!' + decl + '>')
 
 
 def filter_client(source, all_scripts):
