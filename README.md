@@ -1,5 +1,12 @@
 # uiCA (uops.info Code Analyzer)
 
+This is Buster's maintained fork of [andreas-abel/uiCA](https://github.com/andreas-abel/uiCA).
+The upstream Intel simulator is retained. An opt-in **experimental AMD
+resource/recurrence-bound analyzer** supports explicit `ZEN4` / `ZEN5` selection;
+it does **not** yet implement or qualify a complete AMD pipeline simulator.
+See [AMD setup, supported scope and remaining acceptance](AMD.md).
+Work is tracked in [Buster #4020](https://github.com/buster14a/buster/issues/4020).
+
 uiCA is a simulator that can predict the throughput of basic blocks on recent Intel microarchitectures.
 In addition to that, it also provides insights into how the code is executed.
 

@@ -1,0 +1,96 @@
+{
+  "upstream": "6ebeeab0f8705cae4b17a9362f9c65ef91f5cc44",
+  "xml_sha256": "e5e702caaf04c4fc1f75192a9bbe4d8554b3e174f7933a14d124cc33ca677ab3",
+  "cases": [
+    {
+      "case": "recurrence",
+      "hex": "4801d84801c3",
+      "target": "SNB",
+      "stdout": "2.00\n"
+    },
+    {
+      "case": "recurrence",
+      "hex": "4801d84801c3",
+      "target": "HSW",
+      "stdout": "2.00\n"
+    },
+    {
+      "case": "recurrence",
+      "hex": "4801d84801c3",
+      "target": "SKL",
+      "stdout": "2.00\n"
+    },
+    {
+      "case": "recurrence",
+      "hex": "4801d84801c3",
+      "target": "ICL",
+      "stdout": "2.00\n"
+    },
+    {
+      "case": "independent",
+      "hex": "4801d84801d14801f24801ef",
+      "target": "SNB",
+      "stdout": "1.33\n"
+    },
+    {
+      "case": "independent",
+      "hex": "4801d84801d14801f24801ef",
+      "target": "HSW",
+      "stdout": "1.33\n"
+    },
+    {
+      "case": "independent",
+      "hex": "4801d84801d14801f24801ef",
+      "target": "SKL",
+      "stdout": "1.35\n"
+    },
+    {
+      "case": "independent",
+      "hex": "4801d84801d14801f24801ef",
+      "target": "ICL",
+      "stdout": "1.25\n"
+    },
+    {
+      "case": "avx2",
+      "hex": "c5f5fec2c5ddfee5",
+      "target": "HSW",
+      "stdout": "1.00\n"
+    },
+    {
+      "case": "avx2",
+      "hex": "c5f5fec2c5ddfee5",
+      "target": "SKL",
+      "stdout": "1.00\n"
+    },
+    {
+      "case": "avx2",
+      "hex": "c5f5fec2c5ddfee5",
+      "target": "ICL",
+      "stdout": "1.00\n"
+    },
+    {
+      "case": "load",
+      "hex": "488b074883c708",
+      "target": "SNB",
+      "stdout": "1.00\n"
+    },
+    {
+      "case": "load",
+      "hex": "488b074883c708",
+      "target": "HSW",
+      "stdout": "1.00\n"
+    },
+    {
+      "case": "load",
+      "hex": "488b074883c708",
+      "target": "SKL",
+      "stdout": "1.00\n"
+    },
+    {
+      "case": "load",
+      "hex": "488b074883c708",
+      "target": "ICL",
+      "stdout": "1.00\n"
+    }
+  ]
+}

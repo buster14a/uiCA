@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "model_version": "zen-bounds-0.1",
+  "upstream": "6ebeeab0f8705cae4b17a9362f9c65ef91f5cc44",
+  "xed": "c71679ee893ae91db677056d542f305fcc433cb1",
+  "mbuild": "09b6654be0c52bf1df44e88c88b411a67b624cbd",
+  "setuptools": "80.9.0",
+  "data_url": "https://uops.info/instructions.xml",
+  "data_last_modified": "2026-03-29T17:28:39Z",
+  "data_sha256": "e5e702caaf04c4fc1f75192a9bbe4d8554b3e174f7933a14d124cc33ca677ab3",
+  "data_bytes": 142716664,
+  "import_sha256": "ade66d9c2181656f1e8c9e2fd51268689232f811bd78a2a771161117d8759449"
+}

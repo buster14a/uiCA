@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "buster_source_commit": "2af78d9b16f9dd88339e74237272da182418083d",
+  "scope": "Original register arithmetic idioms corresponding to Buster operations. Not full compiled Buster kernels, accepted optimizations or measured speedups.",
+  "cases": [
+    {
+      "name": "scalar-clear-basic",
+      "group": "clear-lowest-bit",
+      "assembly": "mov rax,rdi; sub rax,1; and rdi,rax",
+      "hex": "4889f84883e8014821c7",
+      "source_symbol": "buster_x86_metadata_fill_nul_distances",
+      "source_path": "src/buster/lib/compiler/assembly/x86_64_metadata.c",
+      "operation": "terminators & (terminators - 1)",
+      "work": "one bit clear",
+      "excluded": "loads/stores, branches, flag consumers, loop control, rename saturation, register packing, broadcasts and full-loop instruction selection; BLSR/AND flag side effects differ"
+    },
+    {
+      "name": "scalar-clear-lea",
+      "group": "clear-lowest-bit",
+      "assembly": "lea rax,[rdi-1]; and rdi,rax",
+      "hex": "488d47ff4821c7",
+      "source_symbol": "buster_x86_metadata_fill_nul_distances",
+      "source_path": "src/buster/lib/compiler/assembly/x86_64_metadata.c",
+      "operation": "terminators & (terminators - 1)",
+      "work": "one bit clear",
+      "excluded": "loads/stores, branches, flag consumers, loop control, rename saturation, register packing, broadcasts and full-loop instruction selection; BLSR/AND flag side effects differ"
+    },
+    {
+      "name": "scalar-clear-bmi",
+      "group": "clear-lowest-bit",
+      "assembly": "blsr rdi,rdi",
+      "hex": "c4e2c0f3cf",
+      "source_symbol": "buster_x86_metadata_fill_nul_distances",
+      "source_path": "src/buster/lib/compiler/assembly/x86_64_metadata.c",
+      "operation": "terminators & (terminators - 1)",
+      "work": "one bit clear",
+      "excluded": "loads/stores, branches, flag consumers, loop control, rename saturation, register packing, broadcasts and full-loop instruction selection; BLSR/AND flag side effects differ"
+    },
+    {
+      "name": "simd-add-256",
+      "group": "token-offset-add",
+      "assembly": "vpaddd ymm0,ymm1,ymm2; vpaddd ymm3,ymm4,ymm5",
+      "hex": "c5f5fec2c5ddfedd",
+      "source_symbol": "c_lex_store_rows",
+      "source_path": "src/buster/lib/compiler/frontend/c/c_source.c",
+      "operation": "simd512_add_u32(start_wide, base)",
+      "work": "16 wrapping u32 additions",
+      "excluded": "loads/stores, branches, flag consumers, loop control, rename saturation, register packing, broadcasts and full-loop instruction selection; BLSR/AND flag side effects differ"
+    },
+    {
+      "name": "simd-add-512",
+      "group": "token-offset-add",
+      "assembly": "vpaddd zmm0,zmm1,zmm2",
+      "hex": "62f17548fec2",
+      "source_symbol": "c_lex_store_rows",
+      "source_path": "src/buster/lib/compiler/frontend/c/c_source.c",
+      "operation": "simd512_add_u32(start_wide, base)",
+      "work": "16 wrapping u32 additions",
+      "excluded": "loads/stores, branches, flag consumers, loop control, rename saturation, register packing, broadcasts and full-loop instruction selection; BLSR/AND flag side effects differ"
+    }
+  ]
+}

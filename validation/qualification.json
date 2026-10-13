@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "model_version": "zen-bounds-0.1",
+  "qualification_unit": "core cycles per exact repeated block",
+  "evaluation_started": false,
+  "budgets_disposition": "predeclared development budgets; not an assertion of achieved or maintainer-accepted accuracy",
+  "held_out_budgets": {
+    "scalar-register": {"median_relative_error_max": 0.10, "p95_relative_error_max": 0.20, "worst_relative_error_max": 0.35},
+    "simd-register": {"median_relative_error_max": 0.15, "p95_relative_error_max": 0.30, "worst_relative_error_max": 0.50},
+    "mixed-resources": {"median_relative_error_max": 0.20, "p95_relative_error_max": 0.35, "worst_relative_error_max": 0.50},
+    "memory-l1": {"median_relative_error_max": 0.20, "p95_relative_error_max": 0.35, "worst_relative_error_max": 0.50},
+    "mask-shuffle-compress-gather": {"median_relative_error_max": 0.20, "p95_relative_error_max": 0.35, "worst_relative_error_max": 0.50}
+  },
+  "ranking_rule": "Report every sign reversal for alternatives whose hardware difference exceeds the paired noise interval; no reversal is an acceptance requirement for a claimed ranking. Publish ties and excluded/unsupported cases.",
+  "split_rule": "Assign exact bytes and variants to calibration or held-out before hardware evaluation. Calibration/uops.info tables cannot appear as held-out evidence. Report all excluded forms against the full family denominator.",
+  "targets": {
+    "ZEN4": {"status": "pending", "hardware_qualified": false, "held_out_cases": 0, "raw_evidence": [], "median_relative_error": null, "p95_relative_error": null, "worst_relative_error": null, "ranking_failures": null, "blockers": ["complete pipeline model not implemented", "genuine Zen 4 host/measurement owner not allocated", "held-out corpus not acquired"]},
+    "ZEN5": {"status": "pending", "hardware_qualified": false, "held_out_cases": 0, "raw_evidence": [], "median_relative_error": null, "p95_relative_error": null, "worst_relative_error": null, "ranking_failures": null, "blockers": ["complete pipeline model not implemented", "approved 9700X missing-probe plan not admitted", "held-out corpus not acquired"]}
+  }
+}

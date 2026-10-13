@@ -1,5 +1,9 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+zen-data.json
+.zen-decoder.json
+instructions.xml
+.venv/
 *.py[cod]
 *$py.class
 
