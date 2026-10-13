@@ -1,0 +1,29 @@
+/* Small responsive additions; the downloaded upstream layout/style is retained. */
+body { margin: 8px 16px; }
+textarea { max-width: 100%; box-sizing: border-box; }
+label { display: inline-block; }
+label:has(input:disabled) { color: #888; }
+#localNotice, #optionNote { max-width: 1000px; line-height: 1.45; }
+#localNotice { background: #eef3fb; border-left: 4px solid #4472c4; padding: 10px 12px; }
+#optionNote { color: #555; font-size: 14px; }
+.upload { margin-left: 16px; }
+#outputDiv { overflow-wrap: anywhere; }
+#TPTable { margin-bottom: 16px; }
+.modelWarning { max-width: 1100px; color: #775513; }
+.toolOutput { display: block; background: #f2f2f2; max-width: 1100px; }
+.toolOutput table { border-collapse: collapse; background: white; width: 100%; }
+.toolOutput th, .toolOutput td { padding: 6px 10px; border: 1px solid #ddd; text-align: left; }
+.toolOutput summary { cursor: pointer; padding: 6px 0; }
+.dependencyGraph { max-width: 760px; width: 100%; display: block; background: white; }
+.download { display: inline-block; margin: 12px 0; }
+pre { overflow-x: auto; max-height: 380px; background: #f6f6f6; padding: 12px; font-size: 12px; }
+input[type=button]:disabled { opacity: .6; }
+@media (max-width: 700px) {
+  body { margin: 8px; }
+  h1 { font-size: 24px; }
+  form > table, form > table > tbody, form > table > tbody > tr, form > table > tbody > tr > td { display: block; }
+  form td { padding: 4px 0 !important; }
+  .upload { margin: 10px 0; }
+  #TPTable { font-size: 12px; width: 100%; }
+  #TPTable td, #TPTable th { padding: 5px; overflow-wrap: anywhere; }
+}

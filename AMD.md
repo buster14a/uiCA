@@ -43,33 +43,50 @@ passes the current local corpus. Analysis never downloads data.
 
 ### Graphical interface
 
-After setup, run `.venv/bin/python zen_gui.py --open` to open Zen Workbench at
-`http://127.0.0.1:8765`. A second launch reopens an already-running instance.
-Use `--port 8766` to select another local port. Stop the server with Ctrl+C.
-No browser framework, plotting library, npm package or hosted service is needed.
-Restart the server after updating the fork so the loaded analyzer and its
-provenance match the new source.
+After the analyzer setup, run `.venv/bin/python setup_uica_web.py --download`
+once, then `.venv/bin/python zen_gui.py --open`. The actual downloaded
+uiCA.uops.info form opens at `http://127.0.0.1:8765`, with Zen 4/5 choices added.
+A second launch reopens an already-running instance. Use `--port 8766` for
+another loopback port; stop with Ctrl+C. Restart after updating the fork so
+loaded code and provenance match the source.
 
-The interface accepts Intel-syntax assembly, hex bytes, raw binaries and
-relocation-free ELF64 objects. GNU `as` is required for assembly input; only
-instructions, labels and comments are accepted, not file/macro directives.
-Assembler and decoder subprocesses have deadlines. Raw code remains limited
-to 8 KiB / 256 instructions. No target code is executed.
+Paste GNU as Intel/AT&T, NASM or hex input, or upload raw/relocation-free ELF64
+machine code. GNU `as` / optional NASM assemble instructions, labels and
+comments only; file/macro/repetition directives are rejected. Assembler and
+decoder subprocesses have deadlines. Raw code is limited to 8 KiB / 256
+instructions. No target code is executed.
 
-Results compare both selected AMD targets using the same bytes. Inspect
-conditional resource bounds, register recurrences, mapped instruction counts,
-eligible resource groups, dependency diagrams and per-instruction evidence.
-Diagram boxes group operand nodes by instruction for readability; JSON export
-retains the complete operand graph and exact provenance. Coverage gaps and
-unknowns remain explicit. A changed or failed input never receives a fresh
-success label for the previous result.
+Select one to four targets. Intel uses the original pipeline simulation,
+including its automatic loop/unroll policy and alignment offset, in a bounded
+child process. Unknown Intel forms, decoder diagnostics and invalid-for-chip
+encodings cannot produce a successful prediction in the adapter. The original
+headless CLI is unchanged. AMD uses the explicit conditional resource and
+register-recurrence model; alignment is recorded but unmodeled. The shared
+results table keeps pipeline predictions separate from AMD bounds.
 
-This is a local desktop tool served through a browser, not a public deployment.
+AMD **Dependencies** shows instruction-grouped register/address arrows and a
+complete operand-edge table; JSON retains the full graph, exact bytes, coverage,
+assumptions, code/data/decoder hashes and served-asset hashes. Examples and
+instruction details are available. Pipeline Trace Table/Graph and external
+IACA/LLVM/OSACA/CQA tools are disabled, with visible explanations. A changed or
+failed input clears the previous result instead of relabeling it as current.
+
+Frontend provenance: `uica-web-lock.json` pins the retrieved page and dependency
+assets. The site's separate frontend license is **unverified**; neither its
+HTML/JS/CSS nor its unpublished `/cgi-bin/tp.py` backend is vendored into this
+public fork. Explicit setup downloads into ignored `.uica-web/`, verifies hashes,
+removes telemetry and the third-party URL-shortening function/credential before
+writing, then patches the original DOM/style with this fork's own adapter.
+The sanitized browser-side reference is retained as `.uica-web/reference.html`.
+Client dependencies retain their upstream notices: jQuery/Colorbox CSS/JS MIT;
+Font Awesome CSS MIT and fonts SIL-OFL-1.1. This does not establish a license for
+the site's own frontend. The simulator and new adapter/backend remain AGPL-3.0.
+
+The local service needs no browser framework, npm package or plotting library.
 It binds only to loopback, restricts Host/Origin and analysis requests to the
-current session token, serves an explicit static-file allowlist, and accepts
-one bounded analysis at a time. Input and reports are not uploaded to a remote
-service. Third-party source/data licensing and analyzer qualifications remain
-as documented below; the GUI does not change them.
+current session token, snapshots an explicit asset allowlist, and accepts one
+bounded analysis at a time. It sends no code or reports to a remote service.
+A web cache is never silently downloaded or refreshed at launch/analysis time.
 
 ### Command line
 

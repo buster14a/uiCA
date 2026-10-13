@@ -2,6 +2,7 @@
 __pycache__/
 zen-data.json
 .zen-decoder.json
+.uica-web/
 instructions.xml
 .venv/
 *.py[cod]

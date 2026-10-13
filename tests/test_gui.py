@@ -2,6 +2,7 @@ import base64
 import http.client
 import json
 import os
+import shutil
 from pathlib import Path
 import sys
 import threading
@@ -51,6 +52,17 @@ class InputTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             assemble('call external_symbol')
 
+    def test_att_and_nasm_match_intel_bytes(self):
+        expected = bytes.fromhex('4801d84801c3')
+        self.assertEqual(assemble('add %rbx,%rax\nadd %rax,%rbx', 'asATT'), expected)
+        if shutil.which('nasm'):
+            self.assertEqual(assemble('add rax,rbx ; comment\nadd rbx,rax', 'NASM'), expected)
+
+    def test_nasm_repetition_and_implicit_label_directives_are_rejected(self):
+        for source in ('times 999999 nop', 'label times 999999 nop', 'foo equ 42', '%include x', 'db 0x90', 'foo: incbin x'):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                assembly_source(source, 'NASM')
+
 
 class FakeAnalyzer:
     def __init__(self):
@@ -65,7 +77,8 @@ class FakeAnalyzer:
 class HttpTests(unittest.TestCase):
     def setUp(self):
         self.analyzer = FakeAnalyzer()
-        self.server = GuiServer(('127.0.0.1', 0), self.analyzer)
+        self.server = GuiServer(('127.0.0.1', 0), self.analyzer,
+                                assets={'index.html': b'<h1>uiCA local interface</h1>', 'adapter.js': b'"use strict";'})
         self.thread = threading.Thread(target=self.server.serve_forever, kwargs={'poll_interval': .01}, daemon=True)
         self.thread.start()
         self.host = '127.0.0.1:%d' % self.server.server_address[1]
@@ -89,7 +102,7 @@ class HttpTests(unittest.TestCase):
         self.assertEqual((status, json.loads(body)), (200, {'code': '4801d8'}))
         status, body, headers = self.request('GET', '/')
         self.assertEqual(status, 200)
-        self.assertIn(b'Zen Workbench', body)
+        self.assertIn(b'uiCA local interface', body)
         self.assertIn("default-src 'self'", headers['Content-Security-Policy'])
         self.assertEqual(headers['X-Content-Type-Options'], 'nosniff')
 
@@ -154,6 +167,26 @@ class RealGuiTests(unittest.TestCase):
             report = self.analyzer.run({'mode': 'assembly', 'input': assembly})
             self.assertTrue(all(r['status'] == 'partial' for r in report['results']))
             self.assertTrue(all(r['bounds']['conditional_execution_resources'] is None for r in report['results']))
+
+    def test_selected_targets_and_alignment_remain_explicit(self):
+        report = self.analyzer.run({'mode': 'hex', 'input': '4801d8', 'targets': ['ZEN5'], 'alignment': 17})
+        self.assertEqual([r['target'] for r in report['results']], ['ZEN5'])
+        self.assertEqual(report['input']['alignment_offset'], 17)
+        self.assertEqual(report['input']['alignment_modeled'], {'ZEN5': False})
+        for request in ({'targets': []}, {'targets': ['ZEN4', 'ZEN4']}, {'targets': ['unknown']},
+                        {'alignment': 64}, {'alignment': True}):
+            with self.assertRaises(ValueError):
+                self.analyzer.run({'mode': 'hex', 'input': '90', **request})
+
+    def test_original_intel_pipeline_and_invalid_chip_do_not_get_confused(self):
+        report = self.analyzer.run({'mode': 'hex', 'input': '4801d84801c3', 'targets': ['SKL', 'ZEN5']})
+        intel, amd = report['results']
+        self.assertEqual(intel['analysis_mode'], 'upstream-intel-pipeline')
+        self.assertAlmostEqual(intel['predicted_steady_state_cycles'], 2, places=2)
+        self.assertIsNone(amd['predicted_steady_state_cycles'])
+        unsupported = self.analyzer.run({'mode': 'hex', 'input': 'c5f5fec2c5ddfee5', 'targets': ['SNB']})
+        self.assertEqual(unsupported['results'][0]['status'], 'unsupported')
+        self.assertIsNone(unsupported['results'][0]['predicted_steady_state_cycles'])
 
 
 if __name__ == '__main__':

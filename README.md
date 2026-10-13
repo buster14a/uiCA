@@ -17,23 +17,32 @@ Details on uiCA's pipeline model, as well as a comparison with similar tools, ca
 
 ## Web Interface
 
-**This fork has a local graphical interface for Zen 4 and Zen 5.** After the
-[pinned AMD setup](AMD.md#reproducible-setup), launch it with:
+**This fork adapts the actual [uiCA.uops.info](https://uica.uops.info/) browser
+interface for local Intel, Zen 4 and Zen 5 analysis.** After the
+[pinned AMD setup](AMD.md#reproducible-setup), explicitly fetch the pinned client
+assets and launch:
 
 ```sh
+.venv/bin/python setup_uica_web.py --download
 .venv/bin/python zen_gui.py --open
 ```
 
-It opens [Zen Workbench](http://127.0.0.1:8765) in your browser: paste Intel-syntax
-assembly or hex bytes, or upload raw/ELF machine code, and compare both targets.
-It includes examples, resource charts, dependency diagrams, instruction details,
-coverage gaps and JSON export. Everything runs on your computer. Assembly input
-needs GNU `as`; hex/file input does not. The graphical interface retains the
-experimental analyzer's limitations; it does not add a complete pipeline model
-or hardware qualification. See [GUI details](AMD.md#graphical-interface).
+Open [the local interface](http://127.0.0.1:8765): paste GNU as Intel/AT&T,
+NASM or hex code; select up to four targets; and press **Run!**. The familiar
+upstream form and results table are retained, with AMD comparisons, examples,
+raw/ELF uploads, register dependency views, coverage gaps and JSON export.
+Intel choices use the original uiCA pipeline model. AMD remains experimental
+conditional resource/recurrence analysis, with no full pipeline prediction or
+hardware qualification. External analyzers and pipeline traces are disabled in
+this local adapter. See [GUI details](AMD.md#graphical-interface).
 
-The separate upstream [uiCA.uops.info](https://uiCA.uops.info) web service
-supports upstream Intel models and does not contain this fork's AMD work.
+The separate frontend's license is unverified, and its CGI backend is absent
+from the published simulator repository. Downloaded source/assets stay in the
+ignored `.uica-web/` local cache, outside public git. The fork contains original
+adapter/backend code and pinned download URLs/hashes. Setup removes telemetry
+and third-party URL shortening before caching; analysis never downloads assets
+or uploads code to the upstream site. The upstream hosted service does not
+contain this fork's AMD work.
 
 ## Installation
 ### Ubuntu

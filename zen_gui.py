@@ -5,6 +5,7 @@ import base64
 import binascii
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import mimetypes
 from pathlib import Path
 import re
 import secrets
@@ -21,8 +22,10 @@ import webbrowser
 from zen_cli import (ROOT, MAX_CODE_BYTES, MAX_INSTRUCTIONS, analyze, decode,
                      extract_text, load_data, provenance, sha256)
 from zen_model import MODEL_VERSION
+from setup_uica_web import frontend_assets
 
 WEB = ROOT / 'web'
+INTEL_TARGETS = ('SNB', 'IVB', 'HSW', 'BDW', 'SKL', 'SKX', 'KBL', 'CFL', 'CLX', 'ICL', 'TGL', 'RKL')
 MAX_REQUEST = 23 * 1024 * 1024
 MAX_ASSEMBLY = 32768
 EXAMPLES = [
@@ -47,13 +50,17 @@ EXAMPLES = [
 ]
 
 
-def assembly_source(text):
+def assembly_source(text, syntax='asIntel'):
+    if syntax not in ('asIntel', 'asATT', 'NASM'):
+        raise ValueError('Choose GNU as Intel/AT&T or NASM syntax.')
     if not isinstance(text, str) or not text.strip() or len(text.encode()) > MAX_ASSEMBLY:
         raise ValueError('Enter an assembly block of at most 32 KiB.')
     statements = []
     instructions = 0
     for line in text.splitlines():
-        for statement in line.split('#', 1)[0].split(';'):
+        # In NASM, semicolon starts a comment; in GNU as it separates instructions.
+        line = line.split(';', 1)[0] if syntax == 'NASM' else line.split('#', 1)[0]
+        for statement in ([line] if syntax == 'NASM' else line.split(';')):
             statement = statement.strip()
             if not statement:
                 continue
@@ -66,27 +73,36 @@ def assembly_source(text):
                 statement = label[2]
                 if not statement:
                     continue
-            if statement.startswith('.') or not re.fullmatch(r'[A-Za-z][A-Za-z0-9]*(?:\s+[A-Za-z0-9_.$\[\]{}()*+,\-:\s]+)?', statement):
-                raise ValueError('Use instructions and labels only. Intel syntax is selected automatically; remove assembler directives.')
+            mnemonic = statement.split(None, 1)[0].lower()
+            directives = ('bits', 'section', 'segment', 'global', 'extern', 'default', 'absolute', 'org', 'align', 'alignb',
+                          'incbin', 'include', 'times', 'equ', 'db', 'dw', 'dd', 'dq', 'dt', 'do', 'dy', 'dz',
+                          'resb', 'resw', 'resd', 'resq', 'rest', 'reso', 'resy', 'resz', 'istruc', 'at', 'iend')
+            pattern = r'[A-Za-z][A-Za-z0-9]*(?:\s+[A-Za-z0-9_.$%\[\]{}()*+,\-:\s]+)?'
+            nasm_directive = syntax == 'NASM' and any(word.lower() in directives for word in re.findall(r'[A-Za-z][A-Za-z0-9]*', statement))
+            if mnemonic in directives or nasm_directive or statement.startswith('.') or not re.fullmatch(pattern, statement):
+                raise ValueError('Use instructions, labels and comments only; remove assembler directives.')
             instructions += 1
             if instructions > MAX_INSTRUCTIONS:
                 raise ValueError('Use at most %d instructions.' % MAX_INSTRUCTIONS)
             statements.append(statement)
     if not instructions:
         raise ValueError('The block has no instructions.')
-    return '.intel_syntax noprefix\n.text\n' + '\n'.join(statements) + '\n'
+    prefix = {'asIntel': '.intel_syntax noprefix\n.text\n', 'asATT': '.att_syntax prefix\n.text\n',
+              'NASM': 'BITS 64\nSECTION .text\n'}[syntax]
+    return prefix + '\n'.join(statements) + '\n'
 
 
-def assemble(text):
-    source = assembly_source(text)
-    assembler = shutil.which('as')
+def assemble(text, syntax='asIntel'):
+    source = assembly_source(text, syntax)
+    assembler = shutil.which('nasm' if syntax == 'NASM' else 'as')
     if assembler is None:
-        raise ValueError('Assembly input needs GNU as. You can still use hex bytes or upload machine code.')
+        raise ValueError('This syntax needs %s. You can still use hex bytes or upload machine code.' % ('NASM' if syntax == 'NASM' else 'GNU as'))
     with tempfile.TemporaryDirectory(prefix='uica-gui-') as directory:
         path = Path(directory)
         (path / 'block.s').write_text(source)
         try:
-            result = subprocess.run([assembler, '--64', '-o', str(path / 'block.o'), str(path / 'block.s')],
+            flags = ['-f', 'elf64'] if syntax == 'NASM' else ['--64']
+            result = subprocess.run([assembler, *flags, '-o', str(path / 'block.o'), str(path / 'block.s')],
                                     cwd=path, capture_output=True, text=True, timeout=5)
         except subprocess.TimeoutExpired as error:
             raise ValueError('Assembly exceeded its 5-second deadline.') from error
@@ -105,7 +121,7 @@ def input_bytes(request):
     if not isinstance(text, str):
         raise ValueError('Input must be text or a base64-encoded file.')
     if mode == 'assembly':
-        code = assemble(text)
+        code = assemble(text, request.get('syntax', 'asIntel'))
     elif mode == 'hex':
         if len(text) > MAX_CODE_BYTES * 5:
             raise ValueError('Hex input exceeds the size limit.')
@@ -140,32 +156,67 @@ class Analyzer:
         self.identity = provenance(lock, digest)
         self.identity['gui_source_sha256'] = sha256((ROOT / 'zen_gui.py').read_bytes())
         self.identity['gui_assets_sha256'] = {p.name: sha256(p.read_bytes()) for p in WEB.iterdir() if p.is_file()}
+        self.identity['intel_gui_sha256'] = sha256((ROOT / 'zen_intel_gui.py').read_bytes())
+        self.identity['intel_source_sha256'] = {name: sha256((ROOT / name).read_bytes()) for name in
+                                                ('uiCA.py', 'instructions.py', 'microArchConfigs.py', 'facile.py', 'utils.py', 'convertXML.py')}
+        self.identity['intel_data_sha256'] = {p.name: sha256(p.read_bytes()) for p in sorted((ROOT / 'instrData').glob('*.py'))}
 
     def run(self, request):
         started = time.monotonic()
+        targets = request.get('targets', ['ZEN4', 'ZEN5'])
+        if (not isinstance(targets, list) or not 1 <= len(targets) <= 4 or
+                any(target not in (*INTEL_TARGETS, 'ZEN4', 'ZEN5') for target in targets) or
+                len(set(targets)) != len(targets)):
+            raise ValueError('Choose one to four distinct Intel/AMD targets.')
+        alignment = request.get('alignment', 0)
+        if type(alignment) is not int or not 0 <= alignment < 64:
+            raise ValueError('Alignment offset must be in 0..63.')
         code = input_bytes(request)
         try:
             decoded = decode(code)
         except ValueError as error:
             raise ValueError('The machine code is truncated or could not be decoded completely. Check the bytes and try again.') from error
-        results = [analyze(decoded, target, self.data) for target in ('ZEN4', 'ZEN5')]
-        return {'schema_version': 1, 'kind': 'amd-gui-comparison', 'results': results,
+        results = []
+        for target in targets:
+            if target.startswith('ZEN'):
+                results.append(analyze(decoded, target, self.data))
+            else:
+                try:
+                    timeout = min(15, 45 - (time.monotonic() - started))
+                    if timeout <= 0:
+                        raise ValueError('Comparison exceeded its 45-second deadline.')
+                    child = subprocess.run([sys.executable, str(ROOT / 'zen_intel_gui.py')],
+                                           input=json.dumps({'target': target, 'hex': code.hex(), 'alignment': alignment}),
+                                           text=True, capture_output=True, timeout=timeout, cwd=ROOT)
+                    # XED can print INVALID_FOR_CHIP yet exit 0. Reject any
+                    # diagnostic or extra output rather than trusting the TP.
+                    if child.returncode or child.stderr.strip():
+                        raise ValueError('Input is unsupported by the selected Intel model, or its simulation failed.')
+                    result = json.loads(child.stdout)
+                    results.append(result)
+                except (ValueError, subprocess.TimeoutExpired) as error:
+                    results.append({'target': target, 'status': 'unsupported',
+                                    'predicted_steady_state_cycles': None, 'error': str(error)})
+        return {'schema_version': 1, 'kind': 'local-uica-comparison', 'results': results,
                 'input': {'code_hex': code.hex(), 'code_sha256': sha256(code),
                           'bytes': len(code), 'instructions': len(decoded), 'format': request['mode'],
-                          'alignment_offset': 0, 'alignment_modeled': False,
-                          'loop': 'repeat-exact-block', 'unroll_factor': 1},
+                          'alignment_offset': alignment, 'alignment_modeled': {t: t in INTEL_TARGETS for t in targets},
+                          'syntax': request.get('syntax') if request['mode'] == 'assembly' else None,
+                          'loop_mode': {r['target']: r.get('loop_mode', 'repeat-exact-block') for r in results},
+                          'unroll_factor': {t: None if t in INTEL_TARGETS else 1 for t in targets}},
                 'provenance': self.identity, 'analysis_seconds': round(time.monotonic() - started, 3)}
 
 
 class GuiServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address, analyzer):
+    def __init__(self, address, analyzer, assets=None):
         self.analyzer = analyzer
         self.token = secrets.token_urlsafe(32)
         self.analysis_slot = threading.BoundedSemaphore(1)
-        self.assets = {name: (WEB / name).read_bytes()
-                       for name in ('index.html', 'app.js', 'style.css', 'favicon.svg')}
+        self.assets = frontend_assets() if assets is None else assets
+        if hasattr(analyzer, 'identity'):
+            analyzer.identity['served_assets_sha256'] = {name: sha256(body) for name, body in self.assets.items()}
         super().__init__(address, Handler)
 
 
@@ -191,7 +242,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('X-Frame-Options', 'DENY')
-        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -205,19 +256,18 @@ class Handler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path == '/api/config':
             self.json_response(200, {'token': self.server.token, 'examples': EXAMPLES,
-                                     'model_version': MODEL_VERSION, 'assembly_available': shutil.which('as') is not None})
+                                     'model_version': MODEL_VERSION, 'assembly_available': shutil.which('as') is not None,
+                                     'nasm_available': shutil.which('nasm') is not None, 'intel_targets': INTEL_TARGETS})
         elif path == '/api/health':
-            self.json_response(200, {'status': 'ready', 'app': 'uica-zen-workbench'})
+            self.json_response(200, {'status': 'ready', 'app': 'uica-local'})
         else:
-            files = {'/': ('index.html', 'text/html; charset=utf-8'),
-                     '/index.html': ('index.html', 'text/html; charset=utf-8'),
-                     '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
-                     '/style.css': ('style.css', 'text/css; charset=utf-8'),
-                     '/favicon.svg': ('favicon.svg', 'image/svg+xml')}
-            if path not in files:
+            name = 'index.html' if path == '/' else path.removeprefix('/')
+            if name not in self.server.assets:
                 self.json_response(404, {'error': 'Not found.'})
             else:
-                name, content_type = files[path]
+                content_type = mimetypes.guess_type(name)[0] or 'application/octet-stream'
+                if name.endswith('.js'):
+                    content_type = 'text/javascript; charset=utf-8'
                 self.send(200, self.server.assets[name], content_type)
 
     def do_POST(self):
@@ -269,7 +319,7 @@ def main():
             opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
             with opener.open(address + '/api/health', timeout=1) as response:
                 health = json.loads(response.read(1024))
-            if isinstance(health, dict) and health.get('app') == 'uica-zen-workbench' and health.get('status') == 'ready':
+            if isinstance(health, dict) and health.get('app') == 'uica-local' and health.get('status') == 'ready':
                 webbrowser.open(address)
                 return
         except (OSError, ValueError):
@@ -277,9 +327,9 @@ def main():
     try:
         server = GuiServer(('127.0.0.1', args.port), Analyzer())
     except (OSError, ValueError, KeyError) as error:
-        parser.exit(2, 'GUI setup: %s\nRun the pinned setup_zen.py with this Python first.\n' % error)
+        parser.exit(2, 'GUI setup: %s\nRun setup_zen.py and setup_uica_web.py --download with this Python first.\n' % error)
     address = 'http://127.0.0.1:%d' % server.server_address[1]
-    print('Zen Workbench: ' + address, flush=True)
+    print('uiCA local interface: ' + address, flush=True)
     if args.open:
         webbrowser.open(address)
     try:
