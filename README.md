@@ -17,7 +17,23 @@ Details on uiCA's pipeline model, as well as a comparison with similar tools, ca
 
 ## Web Interface
 
-An online version of uiCA is available at [uiCA.uops.info](https://uiCA.uops.info).
+**This fork has a local graphical interface for Zen 4 and Zen 5.** After the
+[pinned AMD setup](AMD.md#reproducible-setup), launch it with:
+
+```sh
+.venv/bin/python zen_gui.py --open
+```
+
+It opens [Zen Workbench](http://127.0.0.1:8765) in your browser: paste Intel-syntax
+assembly or hex bytes, or upload raw/ELF machine code, and compare both targets.
+It includes examples, resource charts, dependency diagrams, instruction details,
+coverage gaps and JSON export. Everything runs on your computer. Assembly input
+needs GNU `as`; hex/file input does not. The graphical interface retains the
+experimental analyzer's limitations; it does not add a complete pipeline model
+or hardware qualification. See [GUI details](AMD.md#graphical-interface).
+
+The separate upstream [uiCA.uops.info](https://uiCA.uops.info) web service
+supports upstream Intel models and does not contain this fork's AMD work.
 
 ## Installation
 ### Ubuntu

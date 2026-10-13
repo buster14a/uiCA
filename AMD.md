@@ -41,6 +41,38 @@ passes the current local corpus. Analysis never downloads data.
 
 ## Analyze machine code
 
+### Graphical interface
+
+After setup, run `.venv/bin/python zen_gui.py --open` to open Zen Workbench at
+`http://127.0.0.1:8765`. A second launch reopens an already-running instance.
+Use `--port 8766` to select another local port. Stop the server with Ctrl+C.
+No browser framework, plotting library, npm package or hosted service is needed.
+Restart the server after updating the fork so the loaded analyzer and its
+provenance match the new source.
+
+The interface accepts Intel-syntax assembly, hex bytes, raw binaries and
+relocation-free ELF64 objects. GNU `as` is required for assembly input; only
+instructions, labels and comments are accepted, not file/macro directives.
+Assembler and decoder subprocesses have deadlines. Raw code remains limited
+to 8 KiB / 256 instructions. No target code is executed.
+
+Results compare both selected AMD targets using the same bytes. Inspect
+conditional resource bounds, register recurrences, mapped instruction counts,
+eligible resource groups, dependency diagrams and per-instruction evidence.
+Diagram boxes group operand nodes by instruction for readability; JSON export
+retains the complete operand graph and exact provenance. Coverage gaps and
+unknowns remain explicit. A changed or failed input never receives a fresh
+success label for the previous result.
+
+This is a local desktop tool served through a browser, not a public deployment.
+It binds only to loopback, restricts Host/Origin and analysis requests to the
+current session token, serves an explicit static-file allowlist, and accepts
+one bounded analysis at a time. Input and reports are not uploaded to a remote
+service. Third-party source/data licensing and analyzer qualifications remain
+as documented below; the GUI does not change them.
+
+### Command line
+
 ```sh
 printf '\110\001\330\110\001\303' > adds.bin
 .venv/bin/python uiCA.py adds.bin -raw -arch ZEN4 -json zen4.json -depGraph deps.dot
