@@ -7,14 +7,74 @@ is downloaded, and no shortener credential is persisted or used.
 """
 import argparse
 import hashlib
+import html
+from html.parser import HTMLParser
 import json
 from pathlib import Path
 import re
 import urllib.request
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent
 CACHE = ROOT / '.uica-web'
 LOCK = ROOT / 'uica-web-lock.json'
+
+
+class ClientHTMLParser(HTMLParser):
+    """Preserve the downloaded document while removing selected script nodes."""
+    def __init__(self, all_scripts):
+        super().__init__(convert_charrefs=False)
+        self.all_scripts = all_scripts
+        self.dropping_script = False
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'script':
+            src = urlsplit(dict(attrs).get('src') or '')
+            self.dropping_script = self.all_scripts or (src.hostname in ('uops.info', 'www.uops.info') and src.path == '/m.js')
+        if not self.dropping_script:
+            if self.all_scripts:
+                attributes = ''.join(' ' + name + ('="' + html.escape(value, quote=True) + '"' if value is not None else '')
+                                     for name, value in attrs if not name.startswith('on'))
+                self.parts.append('<' + tag + attributes + '>')
+            else:
+                self.parts.append(self.get_starttag_text())
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if not self.dropping_script and not self.parts[-1].endswith('/>'):
+            self.parts[-1] = self.parts[-1][:-1] + '/>'
+        if tag == 'script':
+            self.dropping_script = False
+
+    def handle_endtag(self, tag):
+        if not self.dropping_script:
+            self.parts.append('</' + tag + '>')
+        if tag == 'script':
+            self.dropping_script = False
+
+    def handle_data(self, data):
+        if not self.dropping_script:
+            self.parts.append(data)
+
+    def handle_entityref(self, name):
+        self.handle_data('&' + name + ';')
+
+    def handle_charref(self, name):
+        self.handle_data('&#' + name + ';')
+
+    def handle_comment(self, data):
+        self.handle_data('<!--' + data + '-->')
+
+    def handle_decl(self, decl):
+        self.handle_data('<!' + decl + '>')
+
+
+def filter_client(source, all_scripts):
+    parser = ClientHTMLParser(all_scripts)
+    parser.feed(source)
+    parser.close()
+    return ''.join(parser.parts)
 
 
 def digest(data):
@@ -29,7 +89,7 @@ def sanitize_reference(source):
                            source, flags=re.S)
     if count != 1:
         raise ValueError('Pinned frontend layout changed; refusing to save unsanitized source.')
-    source = re.sub(r'<script\b[^>]*src=["\'][^"\']*uops\.info/m\.js[^"\']*["\'][^>]*>\s*</script>', '', source)
+    source = filter_client(source, all_scripts=False)
     if re.search(r'bitly|Bearer\s+|uops\.info/m\.js', source, re.I):
         raise ValueError('Unexpected credential/telemetry reference; refusing to save source.')
     return '<!-- Local reference from https://uica.uops.info/; telemetry and URL shortening removed. Separate frontend license unverified. -->\n' + source
@@ -37,8 +97,7 @@ def sanitize_reference(source):
 
 def adapt(source):
     """Patch the actual downloaded DOM/style; never replace it with a mockup."""
-    source = re.sub(r'<script\b[^>]*>.*?</script>', '', source, flags=re.S)
-    source = re.sub(r'\s+on(?:click|change)="[^"]*"', '', source)
+    source = filter_client(source, all_scripts=True)
     source = source.replace('https://www.jacklmoore.com/colorbox/example2/colorbox.css', '/vendor/colorbox.css')
     source = source.replace('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css', '/vendor/font-awesome.css')
     source = source.replace('<title>uiCA</title>', '<title>uiCA — local Intel &amp; AMD analyzer</title>')
